@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'david35e@gmail.com'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Test connection check
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    // Admin collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidId(adminId);
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isSignedIn() && request.auth.uid == userId && (request.resource.data.role == 'customer' || isAdmin());
+      allow update: if isValidId(userId) && ((isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.id == userId) || isAdmin());
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if true;
+      allow write: if isAdmin() && isValidId(categoryId);
+    }
+
+    // Products (Salads, meals, drinks, etc.)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow write: if isAdmin() && isValidId(productId);
+    }
+
+    // Salad Ingredients (Bases, veggies, proteins, addons, dressings)
+    match /saladIngredients/{ingredientId} {
+      allow get: if isValidId(ingredientId);
+      allow list: if true;
+      allow write: if isAdmin() && isValidId(ingredientId);
+    }
+
+    // Store Settings & Delivery zones
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow write: if isAdmin() && isValidId(settingId);
+    }
+
+    // Orders collection
+    match /orders/{orderId} {
+      allow create: if isValidId(orderId) && (
+        (isSignedIn() && request.resource.data.userId == request.auth.uid) ||
+        (!isSignedIn() && request.resource.data.userId == 'guest')
+      );
+      allow get: if isValidId(orderId) && (
+        (isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin())) ||
+        resource.data.userId == 'guest'
+      );
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow update: if isValidId(orderId) && isAdmin();
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // Favorites collection
+    match /favorites/{favoriteId} {
+      allow get: if isValidId(favoriteId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(favoriteId) && isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isValidId(favoriteId) && isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
+      allow delete: if isValidId(favoriteId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

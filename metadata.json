@@ -1,0 +1,8 @@
+{
+  "name": "SALAD BOX - אפליקציית הזמנת סלטים ואוכל בריא",
+  "description": "הסלט שלך בדיוק כמו שאתה אוהב - בחר, הרכב והזמן סלטים טריים ואוכל בריא במשלוח מהיר או באיסוף עצמי.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

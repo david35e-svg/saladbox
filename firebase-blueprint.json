@@ -1,0 +1,177 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for registered customers and administrators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "address": { "type": "string", "maxLength": 512 },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "displayName", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin authorization entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "grantedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Food menu categories (salads, dishes, drinks, desserts, toppings)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 64 },
+        "icon": { "type": "string", "maxLength": 64 },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "name", "order", "isActive"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Menu items including ready-made salads, beverages, bowls, and desserts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 1024 },
+        "price": { "type": "number" },
+        "categoryId": { "type": "string", "maxLength": 64 },
+        "image": { "type": "string", "maxLength": 2048 },
+        "isCustomizable": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "isPopular": { "type": "boolean" },
+        "isNew": { "type": "boolean" },
+        "isSpicy": { "type": "boolean" },
+        "calories": { "type": "number" },
+        "prepTimeMinutes": { "type": "number" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "name", "price", "categoryId", "isAvailable"]
+    },
+    "SaladIngredient": {
+      "title": "SaladIngredient",
+      "description": "Ingredients for assembling custom salad bowls (bases, veggies, proteins, addons, dressings)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "enum": ["base", "veggie", "protein", "addon", "dressing"] },
+        "price": { "type": "number" },
+        "isAvailable": { "type": "boolean" },
+        "calories": { "type": "number" },
+        "isDefault": { "type": "boolean" },
+        "isPremium": { "type": "boolean" },
+        "icon": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "category", "price", "isAvailable"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order with details, delivery preferences, tracking and salad line items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "orderNumber": { "type": "string", "maxLength": 32 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "customerPhone": { "type": "string", "maxLength": 32 },
+        "customerEmail": { "type": "string", "format": "email", "maxLength": 256 },
+        "deliveryType": { "type": "string", "enum": ["delivery", "pickup"] },
+        "deliveryFee": { "type": "number" },
+        "itemsTotal": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "status": { "type": "string", "enum": ["received", "in_review", "preparing", "on_the_way", "completed", "cancelled"] },
+        "paymentMethod": { "type": "string", "enum": ["credit_card", "cash_on_delivery", "bit"] },
+        "paymentStatus": { "type": "string", "enum": ["pending", "cleared", "pay_on_arrival"] },
+        "timing": { "type": "string", "enum": ["asap", "scheduled"] },
+        "scheduledTime": { "type": "string", "maxLength": 64 },
+        "specialNotes": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "orderNumber", "customerName", "customerPhone", "deliveryType", "grandTotal", "status"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "User saved favorite salads and custom builds",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 64 },
+        "productName": { "type": "string", "maxLength": 128 },
+        "productPrice": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "productId", "productName"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global store settings, opening hours, and delivery configurations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "storeName": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "address": { "type": "string", "maxLength": 256 },
+        "isOpen": { "type": "boolean" },
+        "openingHoursText": { "type": "string", "maxLength": 256 },
+        "minOrderAmount": { "type": "number" },
+        "freeDeliveryThreshold": { "type": "number" },
+        "baseDeliveryFee": { "type": "number" },
+        "estimatedDeliveryMinutes": { "type": "number" },
+        "estimatedPickupMinutes": { "type": "number" }
+      },
+      "required": ["id", "storeName", "isOpen", "minOrderAmount"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile records restricted to owner and admin"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Registry of authorized store administrators"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Salad and food categories readable by everyone, modifiable by admin"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Catalog of salads and dishes readable by all, modifiable by admin"
+    },
+    "/saladIngredients/{ingredientId}": {
+      "schema": { "$ref": "#/entities/SaladIngredient" },
+      "description": "Salad builder ingredient components readable by all, modifiable by admin"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Orders created by customers, readable by their owner and admins"
+    },
+    "/favorites/{favoriteId}": {
+      "schema": { "$ref": "#/entities/Favorite" },
+      "description": "Customer favorite saved salads readable and writable only by their owner"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Setting" },
+      "description": "Global store operational settings readable by all, modifiable by admin"
+    }
+  }
+}
