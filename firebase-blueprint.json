@@ -42,13 +42,23 @@
     },
     "Product": {
       "title": "Product",
-      "description": "Menu items including ready-made salads, beverages, bowls, and desserts",
+      "description": "Menu items including ready-made salads, beverages, bowls, and desserts with dynamic sizes pricing (250g, 500g, 1kg)",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 64 },
         "name": { "type": "string", "maxLength": 128 },
         "description": { "type": "string", "maxLength": 1024 },
-        "price": { "type": "number" },
+        "price": { "type": "number", "description": "Base reference price" },
+        "sizes": {
+          "type": "object",
+          "description": "Dynamic pricing for sizes: 250g, 500g, 1kg",
+          "properties": {
+            "250g": { "type": "number", "description": "Price for 250g (רבע קילו)" },
+            "500g": { "type": "number", "description": "Price for 500g (חצי קילו)" },
+            "1kg": { "type": "number", "description": "Price for 1kg (קילו)" }
+          }
+        },
+        "defaultSize": { "type": "string", "enum": ["250g", "500g", "1kg"] },
         "categoryId": { "type": "string", "maxLength": 64 },
         "image": { "type": "string", "maxLength": 2048 },
         "isCustomizable": { "type": "boolean" },
@@ -120,6 +130,27 @@
       },
       "required": ["id", "userId", "productId", "productName"]
     },
+    "EventInquiry": {
+      "title": "EventInquiry",
+      "description": "Event inquiry for small events, family gatherings, Shabbat Chatan, and memorials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "eventType": { "type": "string", "maxLength": 64 },
+        "eventTypeName": { "type": "string", "maxLength": 128 },
+        "eventDate": { "type": "string", "maxLength": 64 },
+        "numberOfGuests": { "type": "number" },
+        "contactName": { "type": "string", "maxLength": 128 },
+        "contactPhone": { "type": "string", "maxLength": 32 },
+        "contactEmail": { "type": "string", "maxLength": 256 },
+        "location": { "type": "string", "maxLength": 256 },
+        "estimatedQuantity": { "type": "string", "maxLength": 256 },
+        "notes": { "type": "string", "maxLength": 1024 },
+        "status": { "type": "string", "enum": ["new", "contacted", "approved", "closed"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "eventType", "contactName", "contactPhone"]
+    },
     "Setting": {
       "title": "Setting",
       "description": "Global store settings, opening hours, and delivery configurations",
@@ -164,6 +195,10 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Orders created by customers, readable by their owner and admins"
+    },
+    "/eventInquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/EventInquiry" },
+      "description": "Event inquiries submitted by customers, manageable by admins"
     },
     "/favorites/{favoriteId}": {
       "schema": { "$ref": "#/entities/Favorite" },

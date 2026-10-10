@@ -9,6 +9,7 @@ interface MobileNavProps {
   onOpenOrders: () => void;
   onOpenFavorites: () => void;
   onScrollToMenu: () => void;
+  onReturnToLanding?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -16,6 +17,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onOpenOrders,
   onOpenFavorites,
   onScrollToMenu,
+  onReturnToLanding,
 }) => {
   const { user, isAdmin, loginWithGoogle } = useAuth();
   const { itemsCount, grandTotal, setIsCartOpen } = useCart();

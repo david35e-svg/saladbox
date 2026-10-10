@@ -1,13 +1,14 @@
 import React from 'react';
-import { ChevronRight, ShoppingBag, Trash2, Truck, X, Sparkles, AlertCircle } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Trash2, Truck, X, Sparkles, AlertCircle, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
 
 interface CartDrawerProps {
   onProceedToCheckout: () => void;
+  onOpenPhoneOrder?: () => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) => {
+export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout, onOpenPhoneOrder }) => {
   const {
     items,
     itemsCount,
@@ -21,9 +22,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
     updateQuantity,
     removeFromCart,
     clearCart,
+    addToCart,
   } = useCart();
 
-  const { settings } = useStore();
+  const { settings, products } = useStore();
 
   if (!isCartOpen) return null;
 
@@ -135,14 +137,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
                 <div>
                   <h3 className="text-lg font-bold text-stone-800">הסל שלך ריק</h3>
                   <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-                    בחר מהסלטים המומלצים שלנו או הרכב סלט עשיר ומותאם אישית
+                    בחר מהסלטים הביתיים המבושלים שלנו לשבת או ממארזי האירוח החגיגיים
                   </p>
                 </div>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-colors"
+                  className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-md transition-colors"
                 >
-                  חזרה לתפריט
+                  חזרה לחנות הסלטים
                 </button>
               </div>
             ) : (
@@ -176,6 +178,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
                         <div className="mt-1">
                           <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
                             גודל: {item.selectedSizeLabel}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Drink Flavor Badge */}
+                      {item.selectedFlavor && (
+                        <div className="mt-1">
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 text-[10px] font-bold border border-amber-300">
+                            טעם: {item.selectedFlavor}
                           </span>
                         </div>
                       )}
@@ -225,6 +236,81 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
                 </div>
               ))
             )}
+
+            {/* Quick Cross-sell section for extra drinks / spreads */}
+            {items.length > 0 && products.length > 0 && (
+              <div className="pt-3 border-t border-stone-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-stone-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>משתלב מעולה לשולחן שישי:</span>
+                  </span>
+                  <span className="text-[10px] text-stone-400">הוספה מהירה</span>
+                </div>
+
+                <div className="space-y-2">
+                  {products
+                    .filter(
+                      (p) =>
+                        (p.isDrink || p.name.includes('שום קונפי') || p.name.includes('זיתים')) &&
+                        !items.some((it) => it.productId === p.id)
+                    )
+                    .slice(0, 2)
+                    .map((upsellProduct) => (
+                      <div
+                        key={upsellProduct.id}
+                        className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200/80 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={upsellProduct.image}
+                            alt={upsellProduct.name}
+                            className="w-10 h-10 rounded-lg object-cover border border-amber-200 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-bold text-stone-900 truncate">
+                              {upsellProduct.name}
+                            </div>
+                            <div className="text-[11px] text-amber-900 font-black">
+                              ₪{upsellProduct.price}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (upsellProduct.isDrink) {
+                              addToCart(
+                                upsellProduct,
+                                1,
+                                undefined,
+                                undefined,
+                                0,
+                                undefined,
+                                upsellProduct.drinkFlavors?.[0] || 'תפוח נענע',
+                                upsellProduct.drinkTiers?.[0]
+                              );
+                            } else {
+                              addToCart(
+                                upsellProduct,
+                                1,
+                                undefined,
+                                undefined,
+                                0,
+                                upsellProduct.sizes ? '250g' : undefined
+                              );
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shrink-0 shadow-2xs flex items-center gap-1 transition-all active:scale-95"
+                        >
+                          <span>+</span>
+                          <span>הוסף</span>
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cart Footer */}
@@ -262,6 +348,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
                 </div>
               )}
 
+              {/* Phone order alternative */}
+              {onOpenPhoneOrder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    onOpenPhoneOrder();
+                  }}
+                  className="w-full py-2.5 px-3 bg-stone-100 hover:bg-emerald-50 text-stone-700 hover:text-emerald-900 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-stone-200"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>מעדיפים להזמין בטלפון? העבר את הסל לשיחה עם נציג</span>
+                </button>
+              )}
+
               {/* Checkout CTA Button */}
               <button
                 onClick={() => {
@@ -272,7 +373,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
                 disabled={!meetsMinOrder}
                 className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700 disabled:opacity-50 text-white rounded-2xl font-black text-base shadow-lg shadow-emerald-600/30 flex items-center justify-between transition-all transform active:scale-98"
               >
-                <span>המשך להזמנה</span>
+                <span>המשך להזמנה ותשלום</span>
                 <span className="flex items-center gap-1">
                   <span>₪{grandTotal.toFixed(0)}</span>
                   <ChevronRight className="w-5 h-5 rotate-180" />

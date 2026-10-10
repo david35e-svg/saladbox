@@ -286,7 +286,7 @@ export const SaladBuilderModal: React.FC<SaladBuilderModalProps> = ({
                 {product.name}
               </h2>
               <p className="text-xs text-stone-500 font-medium">
-                התאם והרכב את הסלט שלך בדיוק לטעמך
+                סלט ביתי טרי לפי הזמנה • בחירת גודל (250g | 500g | 1kg) ותוספות
               </p>
             </div>
           </div>

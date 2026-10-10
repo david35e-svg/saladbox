@@ -90,6 +90,13 @@ service cloud.firestore {
       allow delete: if isValidId(orderId) && isAdmin();
     }
 
+    // Event Inquiries (Shabbat Chatan, Azkarot, Aliyah Latora, hosting)
+    match /eventInquiries/{inquiryId} {
+      allow create: if isValidId(inquiryId);
+      allow get, list: if isAdmin();
+      allow update, delete: if isValidId(inquiryId) && isAdmin();
+    }
+
     // Favorites collection
     match /favorites/{favoriteId} {
       allow get: if isValidId(favoriteId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { CartItem, DeliveryType, Product, SaladCustomization, SaladSize, SALAD_SIZE_LABELS } from '../types';
+import { CartItem, DeliveryType, DrinkPricingTier, Product, SaladCustomization, SaladSize, SALAD_SIZE_LABELS } from '../types';
 import { useStore } from './StoreContext';
 
 interface CartContextType {
@@ -20,7 +20,9 @@ interface CartContextType {
     customDetails?: SaladCustomization,
     customSummaryText?: string[],
     extraPrice?: number,
-    size?: SaladSize
+    size?: SaladSize,
+    flavor?: string,
+    tier?: DrinkPricingTier
   ) => void;
   updateQuantity: (itemId: string, delta: number) => void;
   removeFromCart: (itemId: string) => void;
@@ -80,24 +82,31 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     customDetails?: SaladCustomization,
     customSummaryText?: string[],
     extraPrice: number = 0,
-    size?: SaladSize
+    size?: SaladSize,
+    flavor?: string,
+    tier?: DrinkPricingTier
   ) => {
     // Determine size and price
-    const resolvedSize = size || product.defaultSize || (product.sizes ? '500g' : undefined);
-    const basePrice = resolvedSize && product.sizes?.[resolvedSize]
-      ? product.sizes[resolvedSize]
-      : product.price;
+    const resolvedSize = tier ? undefined : (size || product.defaultSize || (product.sizes ? '500g' : undefined));
+    let basePrice = product.price;
+    if (tier) {
+      basePrice = tier.price;
+    } else if (resolvedSize && product.sizes?.[resolvedSize]) {
+      basePrice = product.sizes[resolvedSize];
+    }
 
     const unitPrice = basePrice + extraPrice;
     const sizeSuffix = resolvedSize ? `_${resolvedSize}` : '';
+    const tierSuffix = tier ? `_${tier.id}` : '';
+    const flavorSuffix = flavor ? `_${flavor}` : '';
     const uniqueId = customDetails
-      ? `${product.id}${sizeSuffix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
-      : `${product.id}${sizeSuffix}_standard`;
+      ? `${product.id}${sizeSuffix}${tierSuffix}${flavorSuffix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+      : `${product.id}${sizeSuffix}${tierSuffix}${flavorSuffix}_standard`;
 
-    const sizeLabel = resolvedSize ? SALAD_SIZE_LABELS[resolvedSize]?.full : undefined;
+    const sizeLabel = tier ? tier.label : (resolvedSize ? SALAD_SIZE_LABELS[resolvedSize]?.full : undefined);
 
     setItems((prevItems) => {
-      // If it's a standard non-customized product with the same size, stack quantity
+      // If it's a standard non-customized product with the same size, tier, and flavor, stack quantity
       if (!customDetails) {
         const existingIndex = prevItems.findIndex((it) => it.id === uniqueId);
         if (existingIndex >= 0) {
@@ -121,6 +130,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         quantity,
         selectedSize: resolvedSize,
         selectedSizeLabel: sizeLabel,
+        selectedFlavor: flavor,
+        selectedTier: tier,
         customDetails,
         customSummaryText,
       };

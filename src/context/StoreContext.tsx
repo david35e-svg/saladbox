@@ -17,6 +17,7 @@ import {
   OrderStatus,
   PaymentStatus,
   Product,
+  ProductSizesPricing,
   SaladIngredient,
   StoreSettings,
 } from '../types';
@@ -44,6 +45,7 @@ interface StoreContextType {
   isFavorite: (productId: string) => boolean;
   // Admin Operations
   saveProduct: (product: Product) => Promise<void>;
+  updateProductSizes: (productId: string, sizes: ProductSizesPricing) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   toggleProductAvailability: (productId: string, isAvailable: boolean) => Promise<void>;
   saveCategory: (category: Category) => Promise<void>;
@@ -79,7 +81,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           snapshot.forEach((docSnap) => {
             list.push(docSnap.data() as Category);
           });
-          setCategories(list);
+          const existingIds = new Set(list.map((c) => c.id));
+          const missingInitial = INITIAL_CATEGORIES.filter((c) => !existingIds.has(c.id));
+          const combined = [...list, ...missingInitial].sort((a, b) => a.order - b.order);
+          setCategories(combined);
+          if (isAdmin && missingInitial.length > 0) {
+            seedInitialCollection('categories', missingInitial);
+          }
         } else {
           setCategories(INITIAL_CATEGORIES);
           if (isAdmin) {
@@ -105,7 +113,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           snapshot.forEach((docSnap) => {
             list.push(docSnap.data() as Product);
           });
-          setProducts(list);
+          const existingIds = new Set(list.map((p) => p.id));
+          const missingInitial = INITIAL_PRODUCTS.filter((p) => !existingIds.has(p.id));
+          const combined = [...list, ...missingInitial];
+          setProducts(combined);
+          if (isAdmin && missingInitial.length > 0) {
+            seedInitialCollection('products', missingInitial);
+          }
         } else {
           setProducts(INITIAL_PRODUCTS);
           if (isAdmin) {
@@ -390,6 +404,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const updateProductSizes = async (productId: string, sizes: ProductSizesPricing) => {
+    try {
+      const basePrice = sizes['500g'] ?? sizes['250g'] ?? 45;
+      await updateDoc(doc(db, 'products', productId), {
+        sizes,
+        price: basePrice,
+      });
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, sizes, price: basePrice } : p))
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `products/${productId}`);
+    }
+  };
+
   const toggleProductAvailability = async (productId: string, isAvailable: boolean) => {
     try {
       await updateDoc(doc(db, 'products', productId), { isAvailable });
@@ -494,6 +523,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleFavorite,
         isFavorite,
         saveProduct,
+        updateProductSizes,
         deleteProduct,
         toggleProductAvailability,
         saveCategory,

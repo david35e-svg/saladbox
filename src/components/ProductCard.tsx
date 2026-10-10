@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Flame, Heart, Plus, Sparkles, SlidersHorizontal, Clock } from 'lucide-react';
-import { Product, SaladSize, SALAD_SIZE_LABELS } from '../types';
+import { DrinkPricingTier, Product, SaladSize, SALAD_SIZE_LABELS } from '../types';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 
 interface ProductCardProps {
   product: Product;
-  onOpenCustomizer: (product: Product, size?: SaladSize) => void;
-  onQuickAdd: (product: Product, size?: SaladSize) => void;
+  onOpenCustomizer: (product: Product, size?: SaladSize, flavor?: string, tier?: DrinkPricingTier) => void;
+  onQuickAdd: (product: Product, size?: SaladSize, flavor?: string, tier?: DrinkPricingTier) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -24,6 +24,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     product.defaultSize || (product.sizes ? '500g' : '500g')
   );
 
+  // Selected drink tier if product has drink tiers (tiered pricing)
+  const [selectedTier, setSelectedTier] = useState<DrinkPricingTier | undefined>(
+    product.drinkTiers?.[0]
+  );
+
+  // Selected drink flavor if product is a drink with flavors
+  const [selectedFlavor, setSelectedFlavor] = useState<string | undefined>(
+    product.drinkFlavors?.[0]
+  );
+
+  const isAvailable = product.isAvailable !== false;
+
+  // Compute price based on selected tier, size, or flat price
+  const currentPrice = useMemo(() => {
+    if (product.drinkTiers && product.drinkTiers.length > 0 && selectedTier) {
+      return selectedTier.price;
+    }
+    if (product.sizes && selectedSize && product.sizes[selectedSize]) {
+      return product.sizes[selectedSize];
+    }
+    return product.price;
+  }, [product, selectedTier, selectedSize]);
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
@@ -33,24 +56,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     toggleFavorite(product.id, product.name, currentPrice);
   };
 
-  const isAvailable = product.isAvailable !== false;
-
-  // Compute price based on selected size if available
-  const currentPrice =
-    product.sizes && selectedSize && product.sizes[selectedSize]
-      ? product.sizes[selectedSize]
-      : product.price;
+  const handleAction = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!isAvailable) return;
+    if (product.isCustomizable) {
+      onOpenCustomizer(product, product.sizes ? selectedSize : undefined, selectedFlavor, selectedTier);
+    } else {
+      onQuickAdd(product, product.sizes ? selectedSize : undefined, selectedFlavor, selectedTier);
+    }
+  };
 
   return (
     <div
-      onClick={() => {
-        if (!isAvailable) return;
-        if (product.isCustomizable) {
-          onOpenCustomizer(product, product.sizes ? selectedSize : undefined);
-        } else {
-          onQuickAdd(product, product.sizes ? selectedSize : undefined);
-        }
-      }}
+      onClick={handleAction}
       className={`group bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-xs hover:shadow-xl hover:border-emerald-500/30 transition-all duration-300 flex flex-col cursor-pointer relative ${
         !isAvailable ? 'opacity-60 grayscale-[0.3]' : ''
       }`}
@@ -78,6 +96,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Top Badges */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end z-10">
+          {product.isDrink && (
+            <span className="bg-sky-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+              <span>🥤</span>
+              <span>שתייה</span>
+            </span>
+          )}
+          {product.pricingModel === 'tiered' || (product.drinkTiers && product.drinkTiers.length > 0) ? (
+            <span className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+              <span>🏷️</span>
+              <span>מחיר מדורג</span>
+            </span>
+          ) : product.isDrink ? (
+            <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-0.5">
+              <span>מחיר אחיד</span>
+            </span>
+          ) : null}
           {product.isPopular && (
             <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
               <span>🔥</span>
@@ -137,8 +171,46 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.description}
           </p>
 
-          {/* Size Selector if product has sizes */}
-          {product.sizes && (
+          {/* Tiered Pricing Selector for Drinks (מחיר מדורג) */}
+          {product.drinkTiers && product.drinkTiers.length > 0 && (
+            <div className="mt-3 pt-2 border-t border-stone-100" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-stone-500 font-bold">
+                  בחר כמות / מדרגת מחיר:
+                </span>
+                {selectedTier?.badge && (
+                  <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/90 px-1.5 py-0.5 rounded-md">
+                    {selectedTier.badge}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 bg-stone-100/80 p-1 rounded-xl">
+                {product.drinkTiers.map((tier) => {
+                  const isSelected = selectedTier?.id === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => setSelectedTier(tier)}
+                      className={`py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all text-center leading-tight flex flex-col items-center justify-center ${
+                        isSelected
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'text-stone-700 hover:text-stone-950 bg-white/70 hover:bg-white'
+                      }`}
+                    >
+                      <span>{tier.label}</span>
+                      <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-100' : 'text-emerald-800'}`}>
+                        ₪{tier.price}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Size Selector if product has sizes (for homemade salads) */}
+          {product.sizes && !product.drinkTiers && (
             <div className="mt-3 pt-2 border-t border-stone-100" onClick={(e) => e.stopPropagation()}>
               <span className="text-[10px] text-stone-400 font-semibold block mb-1">
                 בחר גודל סלט:
@@ -167,13 +239,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             </div>
           )}
+
+          {/* Flavor Selector if product has drink flavors */}
+          {product.drinkFlavors && product.drinkFlavors.length > 0 && (
+            <div className="mt-2.5 pt-2 border-t border-stone-100" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[10px] text-stone-500 font-bold block mb-1">
+                בחר טעם פחית:
+              </span>
+              <div className="grid grid-cols-2 gap-1 bg-stone-100/70 p-1 rounded-xl max-h-28 overflow-y-auto">
+                {product.drinkFlavors.map((flv) => {
+                  const isSelected = selectedFlavor === flv;
+                  return (
+                    <button
+                      key={flv}
+                      type="button"
+                      onClick={() => setSelectedFlavor(flv)}
+                      className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold transition-all text-center leading-tight truncate ${
+                        isSelected
+                          ? 'bg-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-600 font-black'
+                          : 'text-stone-700 hover:text-stone-950 hover:bg-stone-200/80 bg-white/70'
+                      }`}
+                      title={flv}
+                    >
+                      {flv}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Price & CTA Button */}
         <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
           <div>
             <span className="text-[11px] text-stone-400 block font-medium">
-              {product.sizes ? SALAD_SIZE_LABELS[selectedSize].short : 'מחיר'}
+              {product.drinkTiers && selectedTier
+                ? selectedTier.label
+                : product.sizes
+                ? SALAD_SIZE_LABELS[selectedSize].short
+                : product.isDrink
+                ? 'מחיר אחיד לפחית'
+                : 'מחיר'}
             </span>
             <span className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
               ₪{currentPrice}
@@ -184,25 +291,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.isCustomizable ? (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCustomizer(product, product.sizes ? selectedSize : undefined);
-                }}
+                onClick={handleAction}
                 disabled={!isAvailable}
-                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white font-bold text-xs transition-all flex items-center gap-1.5 border border-emerald-200 hover:border-emerald-600 shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-700 text-emerald-900 hover:text-white font-bold text-xs transition-all flex items-center gap-1.5 border border-emerald-200 hover:border-emerald-700 shadow-xs"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>התאם סלט</span>
+                <span>בחירת גודל ופרטים</span>
               </button>
             ) : (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickAdd(product, product.sizes ? selectedSize : undefined);
-                }}
+                onClick={handleAction}
                 disabled={!isAvailable}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-700/20 active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>הוסף לסל</span>

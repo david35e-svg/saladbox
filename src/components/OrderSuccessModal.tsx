@@ -7,12 +7,14 @@ interface OrderSuccessModalProps {
   order: Order;
   onClose: () => void;
   onViewAllOrders: () => void;
+  onViewReceipt?: (order: Order) => void;
 }
 
 export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   order,
   onClose,
   onViewAllOrders,
+  onViewReceipt,
 }) => {
   const { settings } = useStore();
 
@@ -242,6 +244,32 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               ₪{order.grandTotal.toFixed(0)}
             </span>
           </div>
+
+          {/* Official Digital Tax Receipt Banner */}
+          {onViewReceipt && (
+            <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-stone-50 rounded-2xl border border-emerald-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                  📄
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-stone-900">חשבונית מס קבלה דיגיטלית</div>
+                  <div className="text-[11px] text-stone-500">
+                    מסמך ממוחשב חוקי ומאושר • מוכן להדפסה או הורדה
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onViewReceipt(order)}
+                className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black shadow-xs shrink-0 transition-all active:scale-95 flex items-center gap-1"
+              >
+                <span>הצג קבלה</span>
+                <span>←</span>
+              </button>
+            </div>
+          )}
 
           {/* Contact and share actions */}
           <div className="flex items-center gap-2 pt-1">

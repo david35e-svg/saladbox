@@ -10,13 +10,18 @@ import { ProductCard } from './components/ProductCard';
 import { SaladBuilderModal } from './components/SaladBuilderModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
+import { EventInquiryModal } from './components/EventInquiryModal';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { OrdersHistoryModal } from './components/OrdersHistoryModal';
 import { FavoritesModal } from './components/FavoritesModal';
 import { AdminDashboard } from './components/AdminDashboard';
-import { Order, Product } from './types';
+import { LandingPage } from './components/LandingPage';
+import { PortionsCalculatorModal } from './components/PortionsCalculatorModal';
+import { PhoneOrderModal } from './components/PhoneOrderModal';
+import { ReceiptModal } from './components/ReceiptModal';
+import { DrinkPricingTier, Order, Product, SaladSize } from './types';
 import { checkOrderWindow } from './utils/orderCutoff';
-import { Heart, Sparkles, ShieldCheck, Phone, MapPin, Clock, AlertTriangle } from 'lucide-react';
+import { Heart, Sparkles, ShieldCheck, Phone, MapPin, Clock, AlertTriangle, CalendarCheck, UtensilsCrossed } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { products, categories, settings, isLoading } = useStore();
@@ -26,9 +31,16 @@ const MainApp: React.FC = () => {
   // Dynamic order cutoff status
   const orderWindow = checkOrderWindow(settings);
 
+  // Navigation & View state: 'landing' (public onboarding) or 'store' (shop & orders)
+  const [currentView, setCurrentView] = useState<'landing' | 'store'>('landing');
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isPhoneOrderOpen, setIsPhoneOrderOpen] = useState(false);
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+
   // Modals state
   const [activeCustomizingProduct, setActiveCustomizingProduct] = useState<Product | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isEventInquiryOpen, setIsEventInquiryOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [isOrdersHistoryOpen, setIsOrdersHistoryOpen] = useState(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
@@ -55,8 +67,13 @@ const MainApp: React.FC = () => {
   };
 
   // Quick add standard product to cart
-  const handleQuickAdd = (product: Product) => {
-    addToCart(product, 1);
+  const handleQuickAdd = (
+    product: Product,
+    size?: SaladSize,
+    flavor?: string,
+    tier?: DrinkPricingTier
+  ) => {
+    addToCart(product, 1, undefined, undefined, 0, size, flavor, tier);
   };
 
   // Filtered products list
@@ -76,8 +93,16 @@ const MainApp: React.FC = () => {
       let matchTag = true;
       if (filterTag === 'popular') {
         matchTag = Boolean(prod.isPopular);
-      } else if (filterTag === 'custom') {
-        matchTag = Boolean(prod.isCustomizable);
+      } else if (filterTag === 'packages') {
+        matchTag = prod.categoryId === 'packages' || Boolean(prod.isPackage);
+      } else if (filterTag === 'drinks') {
+        matchTag = prod.categoryId === 'drinks' || Boolean(prod.isDrink) || prod.name.includes('פחית');
+      } else if (filterTag === 'spicy') {
+        matchTag =
+          Boolean(prod.isSpicy) ||
+          prod.name.includes('חריף') ||
+          prod.description.includes('חריף') ||
+          prod.name.includes('מטבוחה');
       } else if (filterTag === 'new') {
         matchTag = Boolean(prod.isNew);
       }
@@ -91,6 +116,104 @@ const MainApp: React.FC = () => {
     return products.filter((p) => p.isPopular).slice(0, 4);
   }, [products]);
 
+  // If user is on the Landing Page entrance
+  if (currentView === 'landing') {
+    return (
+      <>
+        <LandingPage
+          onEnterStore={() => {
+            setCurrentView('store');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenCalculator={() => setIsCalculatorOpen(true)}
+          onOpenEvents={() => setIsEventInquiryOpen(true)}
+          onOpenOrders={() => setIsOrdersHistoryOpen(true)}
+          onOpenFavorites={() => setIsFavoritesOpen(true)}
+          onOpenPhoneOrder={() => setIsPhoneOrderOpen(true)}
+        />
+
+        {/* Global modals accessible from landing page */}
+        {/* Portions Calculator Modal */}
+        <PortionsCalculatorModal
+          isOpen={isCalculatorOpen}
+          onClose={() => setIsCalculatorOpen(false)}
+          onGoToStore={() => {
+            setIsCalculatorOpen(false);
+            setCurrentView('store');
+            scrollToMenu();
+          }}
+        />
+
+        {/* Event Inquiry Modal */}
+        <EventInquiryModal
+          isOpen={isEventInquiryOpen}
+          onClose={() => setIsEventInquiryOpen(false)}
+        />
+
+        {/* Phone Order Hotline Modal */}
+        <PhoneOrderModal
+          isOpen={isPhoneOrderOpen}
+          onClose={() => setIsPhoneOrderOpen(false)}
+          onGoToStore={() => {
+            setIsPhoneOrderOpen(false);
+            setCurrentView('store');
+            scrollToMenu();
+          }}
+        />
+
+        {/* Orders History Modal */}
+        {isOrdersHistoryOpen && (
+          <OrdersHistoryModal
+            onClose={() => setIsOrdersHistoryOpen(false)}
+            onTrackOrder={(order) => {
+              setIsOrdersHistoryOpen(false);
+              setCompletedOrder(order);
+            }}
+            onViewReceipt={(order) => setSelectedReceiptOrder(order)}
+          />
+        )}
+
+        {/* Favorites Modal */}
+        {isFavoritesOpen && (
+          <FavoritesModal
+            onClose={() => setIsFavoritesOpen(false)}
+            onOpenCustomizer={(product) => {
+              setIsFavoritesOpen(false);
+              setCurrentView('store');
+              setActiveCustomizingProduct(product);
+            }}
+          />
+        )}
+
+        {/* Order Tracking Modal */}
+        {completedOrder && (
+          <OrderSuccessModal
+            order={completedOrder}
+            onClose={() => setCompletedOrder(null)}
+            onViewAllOrders={() => {
+              setCompletedOrder(null);
+              setIsOrdersHistoryOpen(true);
+            }}
+            onViewReceipt={(order) => setSelectedReceiptOrder(order)}
+          />
+        )}
+
+        {/* Official Receipt Modal */}
+        {selectedReceiptOrder && (
+          <ReceiptModal
+            order={selectedReceiptOrder}
+            onClose={() => setSelectedReceiptOrder(null)}
+          />
+        )}
+
+        {/* Admin Dashboard */}
+        {isAdminDashboardOpen && (
+          <AdminDashboard onClose={() => setIsAdminDashboardOpen(false)} />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 pb-20 md:pb-12 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
       {/* Header */}
@@ -99,6 +222,11 @@ const MainApp: React.FC = () => {
           onOpenAdmin={() => setIsAdminDashboardOpen(true)}
           onOpenOrders={() => setIsOrdersHistoryOpen(true)}
           onOpenFavorites={() => setIsFavoritesOpen(true)}
+          onOpenPhoneOrder={() => setIsPhoneOrderOpen(true)}
+          onReturnToLanding={() => {
+            setCurrentView('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
 
         {/* Order Cycle Status Banner if closed */}
@@ -124,10 +252,15 @@ const MainApp: React.FC = () => {
           </div>
         ) : null}
 
-        {/* Hero Banner */}
+        {/* Hero Banner - Boutique Store Entrance */}
         <HeroBanner
-          onStartCustomSalad={handleStartCustomSalad}
           onExploreMenu={scrollToMenu}
+          onSelectPackages={() => {
+            setActiveCategoryId('packages');
+            scrollToMenu();
+          }}
+          onOpenEvents={() => setIsEventInquiryOpen(true)}
+          onStartCustomSalad={handleStartCustomSalad}
         />
 
         {/* Categories Bar */}
@@ -232,38 +365,95 @@ const MainApp: React.FC = () => {
             )}
           </section>
 
-          {/* Value Props & Freshness Promise */}
-          <section className="bg-gradient-to-r from-emerald-800 to-stone-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg space-y-4">
-            <div className="max-w-3xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                ההתחייבות של SALAD BOX
+          {/* Concept Section: "לא מכינים מראש בכמויות" */}
+          <section className="bg-gradient-to-br from-stone-900 via-emerald-950 to-stone-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl border border-emerald-800/40 space-y-6">
+            <div className="max-w-3xl space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                הקונספט של חנות הסלטים
               </span>
-              <h3 className="text-xl sm:text-2xl font-black mt-1">
-                טריות ללא פשרות. מהחווה אל הקערה.
+              <h3 className="text-2xl sm:text-3xl font-black text-white">
+                לא מכינים מראש בכמויות. את הסלטים אנחנו מכינים לפי ההזמנות שלכם.
               </h3>
-              <p className="text-xs sm:text-sm text-emerald-100/90 mt-2 leading-relaxed">
-                הירקות נשטפים, מחוטאים ונקצצים מדי בוקר. הרטבים שלנו מוכנים במקום משמן זית ישראלי
-                טהור, עשבי תיבול טריים ותבלינים מובחרים, ללא חומרים משמרים וללא סוכר מיותר.
+              <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-normal">
+                אצלנו אין מלאי שעומד במקרר ואין חומרים משמרים. כדי שתקבלו לשולחן שישי ולאירוח שלכם סלטים טריים,
+                עשירים ומדויקים – אנחנו פותחים סירים רק לפי מה שהוזמן.
+                ההזמנות מתקבלות עד יום שלישי בחצות, והכל מוכן טרי בעבודת יד לקראת סוף השבוע.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10 text-xs">
-              <div>
-                <div className="font-bold text-emerald-300">🥦 ירקות פריכים</div>
-                <div className="text-[11px] text-stone-300">אספקה יומיומית מובחרת</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-4 border-t border-emerald-800/40 text-xs">
+              <div className="p-3 bg-stone-900/60 rounded-2xl border border-emerald-900/40">
+                <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <span>🍅</span>
+                  <span>בישול איטי אותנטי</span>
+                </div>
+                <div className="text-[11px] text-stone-300 mt-1 leading-normal">
+                  מטבוחה 5 שעות על אש נמוכה ושום קונפי
+                </div>
               </div>
-              <div>
-                <div className="font-bold text-lime-300">🥣 רטבים תוצרת בית</div>
-                <div className="text-[11px] text-stone-300">מתכונים סודיים ובלעדיים</div>
+
+              <div className="p-3 bg-stone-900/60 rounded-2xl border border-emerald-900/40">
+                <div className="font-bold text-lime-300 flex items-center gap-1.5">
+                  <span>🍆</span>
+                  <span>קלייה על אש גלויה</span>
+                </div>
+                <div className="text-[11px] text-stone-300 mt-1 leading-normal">
+                  חצילים ופלפלים בטעם מעושן טבעי
+                </div>
               </div>
-              <div>
-                <div className="font-bold text-amber-300">🍗 חלבון איכותי</div>
-                <div className="text-[11px] text-stone-300">עוף, סלמון, חלומי וטופו טרי</div>
+
+              <div className="p-3 bg-stone-900/60 rounded-2xl border border-emerald-900/40">
+                <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                  <span>⚖️</span>
+                  <span>בחירת גדלים ומארזים</span>
+                </div>
+                <div className="text-[11px] text-stone-300 mt-1 leading-normal">
+                  250 גרם, 500 גרם, 1 ק"ג ומארזי שישי
+                </div>
               </div>
-              <div>
-                <div className="font-bold text-emerald-300">♻️ אריזות מתכלות</div>
-                <div className="text-[11px] text-stone-300">שומרים על הסביבה</div>
+
+              <div className="p-3 bg-stone-900/60 rounded-2xl border border-emerald-900/40">
+                <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>נוף הגליל והסביבה</span>
+                </div>
+                <div className="text-[11px] text-stone-300 mt-1 leading-normal">
+                  איסוף עצמי מסודר או הפצה מקומית
+                </div>
               </div>
+            </div>
+          </section>
+
+          {/* Events Section: "יש לכם אירוע?" */}
+          <section className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-3xl p-6 sm:p-8 border border-amber-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300/80">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>הזמנות לאירועים ואירוח ביתי</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-stone-900">
+                יש לכם אירוע משפחתי או שמחה?
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
+                אנחנו מכינים סלטים עשירים ומארזים נדיבים במיוחד עבור:
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-bold text-stone-800">
+                <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">✓ שבת חתן</span>
+                <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">✓ אזכרה וסעודה</span>
+                <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">✓ עלייה לתורה</span>
+                <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">✓ אירוח משפחתי</span>
+                <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">✓ יום הולדת ומפגש חברים</span>
+              </div>
+            </div>
+
+            <div className="shrink-0">
+              <button
+                onClick={() => setIsEventInquiryOpen(true)}
+                className="w-full sm:w-auto px-6 py-3.5 bg-stone-900 hover:bg-stone-800 text-amber-300 hover:text-amber-200 rounded-2xl font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 border border-amber-500/30"
+              >
+                <span>🎉</span>
+                <span>אני צריך סלטים לאירוע</span>
+              </button>
             </div>
           </section>
         </main>
@@ -278,7 +468,7 @@ const MainApp: React.FC = () => {
               <span className="text-lg font-black tracking-tight text-stone-900">SALAD BOX</span>
             </div>
             <p className="text-xs text-stone-500 font-medium">
-              אפליקציית סלטים ואוכל בריא • {settings.address}
+              חנות בוטיק לסלטים ביתיים לשולחן שישי ולאירוח • {settings.address}
             </p>
           </div>
 
@@ -307,7 +497,7 @@ const MainApp: React.FC = () => {
 
         <div className="max-w-7xl mx-auto mt-6 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-400">
           <div>© {new Date().getFullYear()} SALAD BOX. כל הזכויות שמורות.</div>
-          <div>טרי • בריא • מהיר • מותאם אישית</div>
+          <div>אתם מזמינים • אנחנו מכינים • אתם מגישים • נוף הגליל</div>
         </div>
       </footer>
 
@@ -317,6 +507,10 @@ const MainApp: React.FC = () => {
         onOpenOrders={() => setIsOrdersHistoryOpen(true)}
         onOpenFavorites={() => setIsFavoritesOpen(true)}
         onScrollToMenu={scrollToMenu}
+        onReturnToLanding={() => {
+          setCurrentView('landing');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* Modals & Drawers */}
@@ -329,7 +523,10 @@ const MainApp: React.FC = () => {
       )}
 
       {/* 2. Cart Drawer */}
-      <CartDrawer onProceedToCheckout={() => setIsCheckoutOpen(true)} />
+      <CartDrawer
+        onProceedToCheckout={() => setIsCheckoutOpen(true)}
+        onOpenPhoneOrder={() => setIsPhoneOrderOpen(true)}
+      />
 
       {/* 3. Checkout Modal */}
       {isCheckoutOpen && (
@@ -351,6 +548,7 @@ const MainApp: React.FC = () => {
             setCompletedOrder(null);
             setIsOrdersHistoryOpen(true);
           }}
+          onViewReceipt={(order) => setSelectedReceiptOrder(order)}
         />
       )}
 
@@ -362,8 +560,27 @@ const MainApp: React.FC = () => {
             setIsOrdersHistoryOpen(false);
             setCompletedOrder(order);
           }}
+          onViewReceipt={(order) => setSelectedReceiptOrder(order)}
         />
       )}
+
+      {/* Official Receipt Modal */}
+      {selectedReceiptOrder && (
+        <ReceiptModal
+          order={selectedReceiptOrder}
+          onClose={() => setSelectedReceiptOrder(null)}
+        />
+      )}
+
+      {/* Phone Order Hotline Modal */}
+      <PhoneOrderModal
+        isOpen={isPhoneOrderOpen}
+        onClose={() => setIsPhoneOrderOpen(false)}
+        onGoToStore={() => {
+          setIsPhoneOrderOpen(false);
+          scrollToMenu();
+        }}
+      />
 
       {/* 6. Favorites Modal */}
       {isFavoritesOpen && (
@@ -380,6 +597,22 @@ const MainApp: React.FC = () => {
       {isAdminDashboardOpen && (
         <AdminDashboard onClose={() => setIsAdminDashboardOpen(false)} />
       )}
+
+      {/* 8. Event Inquiry Modal */}
+      <EventInquiryModal
+        isOpen={isEventInquiryOpen}
+        onClose={() => setIsEventInquiryOpen(false)}
+      />
+
+      {/* 9. Portions Calculator Modal */}
+      <PortionsCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        onGoToStore={() => {
+          setIsCalculatorOpen(false);
+          scrollToMenu();
+        }}
+      />
     </div>
   );
 };

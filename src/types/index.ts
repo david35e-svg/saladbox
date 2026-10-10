@@ -34,28 +34,71 @@ export interface ProductSizesPricing {
   '1kg': number;
 }
 
+export interface DrinkPricingTier {
+  id: string;
+  label: string; // e.g. 'פחית בודדת (1 יח׳)', 'זוג פחיות (2 יח׳)', 'רביעייה (4 פחיות)'
+  quantity: number;
+  price: number;
+  badge?: string; // e.g. 'חיסכון ₪8'
+}
+
+export type PricingModel = 'flat' | 'tiered' | 'sizes';
+
 export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number; // Base reference price (usually 250g or unit)
+  price: number; // Base reference price (usually for 500g, 1 can flat price, or package unit)
   categoryId: string;
   image: string;
-  isCustomizable: boolean;
+  pricingModel?: PricingModel; // 'flat' (מחיר אחיד), 'tiered' (מחיר מדורג/כמויות), 'sizes' (250g/500g/1kg)
+  isCustomizable?: boolean;
   isAvailable: boolean;
   sizes?: ProductSizesPricing; // Configurable prices for 250g, 500g, 1kg
   defaultSize?: SaladSize;
+  isPackage?: boolean; // True for festive packages (מארז שישי, מארז אירוח, וכו')
+  packageIncludesText?: string; // Summary of what the package contains
+  isDrink?: boolean; // True for canned beverages
+  drinkFlavors?: string[]; // Available flavors (e.g. תפוח נענע, לימונדה, תות, פירות יער)
+  drinkTiers?: DrinkPricingTier[]; // Configurable tiered prices (e.g. 1 can = ₪14, 2 = ₪26, 4 = ₪48, 6 = ₪70)
   isFeatured?: boolean;
   isPopular?: boolean;
   isNew?: boolean;
   isSpicy?: boolean;
+  hebrewTag?: string; // e.g. "בישול איטי 5 שעות", "לשולחן שבת", "מארז חגיגי"
   calories?: number;
   prepTimeMinutes?: number;
   order?: number;
+  isSoldOut?: boolean; // סולד אאוט לשבת הנוכחית
   defaultBases?: string[];
   defaultVeggies?: string[];
   defaultProteins?: string[];
   defaultDressings?: string[];
+}
+
+export type EventType =
+  | 'shabbat_chatan'
+  | 'azkara'
+  | 'aliyah_latora'
+  | 'family_hosting'
+  | 'birthday'
+  | 'friends_gathering'
+  | 'other';
+
+export interface EventInquiry {
+  id: string;
+  eventType: EventType;
+  eventTypeName: string;
+  eventDate: string;
+  numberOfGuests: number;
+  contactName: string;
+  contactPhone: string;
+  contactEmail?: string;
+  location?: string;
+  estimatedQuantity?: string;
+  notes?: string;
+  status: 'new' | 'contacted' | 'approved' | 'closed';
+  createdAt: string;
 }
 
 export interface SaladCustomization {
@@ -80,6 +123,8 @@ export interface CartItem {
   quantity: number;
   selectedSize?: SaladSize;
   selectedSizeLabel?: string;
+  selectedFlavor?: string; // Flavor for canned drinks (תפוח נענע, לימונדה, תות, וכו')
+  selectedTier?: DrinkPricingTier; // Tiered pack selected (e.g. זוג, רביעייה, שישייה)
   customDetails?: SaladCustomization;
   customSummaryText?: string[];
 }
@@ -94,7 +139,7 @@ export type OrderStatus =
 
 export type DeliveryType = 'delivery' | 'pickup';
 
-export type PaymentMethod = 'cash' | 'bit' | 'credit_card';
+export type PaymentMethod = 'cash' | 'bit' | 'credit_card' | 'phone';
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
@@ -122,8 +167,18 @@ export interface Order {
   paymentStatus: PaymentStatus;
   paymentConfirmedAt?: string;
   transactionId?: string;
+  receiptNumber?: string; // מספר חשבונית מס קבלה רשמי
+  discountAmount?: number; // גובה הנחה מקופון או מבצע
+  couponCode?: string; // קוד קופון שהוזן
+  creditCardLast4?: string; // 4 ספרות אחרונות של כרטיס האשראי
+  approvalCode?: string; // מספר אישור סליקה
+  bitTransactionRef?: string; // אסמכתת תשלום ב-Bit
+  installments?: number; // מספר תשלומים
   timing: 'asap' | 'scheduled';
   scheduledTime?: string;
+  timeSlot?: string; // חלון זמנים ביום שישי
+  isGift?: boolean; // מתנה לשבת
+  giftMessage?: string; // ברכה אישית מודפסת
   specialNotes?: string;
   items: CartItem[];
   createdAt: string;

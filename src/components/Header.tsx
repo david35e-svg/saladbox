@@ -20,12 +20,16 @@ interface HeaderProps {
   onOpenAdmin: () => void;
   onOpenOrders: () => void;
   onOpenFavorites: () => void;
+  onReturnToLanding?: () => void;
+  onOpenPhoneOrder?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
   onOpenOrders,
   onOpenFavorites,
+  onReturnToLanding,
+  onOpenPhoneOrder,
 }) => {
   const { user, profile, isAdmin, loginWithGoogle, logout } = useAuth();
   const { itemsCount, grandTotal, setIsCartOpen, deliveryType, setDeliveryType } = useCart();
@@ -73,7 +77,18 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 flex items-center justify-between gap-3">
         {/* Brand & Logo */}
         <div className="flex items-center gap-3">
-          <a href="#" className="flex items-center gap-2.5 group">
+          <button
+            type="button"
+            onClick={() => {
+              if (onReturnToLanding) {
+                onReturnToLanding();
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex items-center gap-2.5 group text-right cursor-pointer"
+            title="חזרה לדף הנחיתה הראשי"
+          >
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-lime-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-200">
               <span className="text-xl sm:text-2xl">🥗</span>
             </div>
@@ -82,15 +97,15 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-stone-900 group-hover:text-emerald-700 transition-colors">
                   SALAD BOX
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm">
-                  FRESH
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                  חנות בוטיק
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 hidden sm:block font-medium">
-                הסלט שלך. בדיוק כמו שאתה אוהב.
+                סלטים ביתיים לשולחן שישי ולאירוח • נוף הגליל
               </p>
             </div>
-          </a>
+          </button>
 
           {/* Delivery / Pickup pill */}
           <div className="hidden lg:flex items-center p-1 bg-stone-100 rounded-full border border-stone-200 text-xs font-semibold mr-4">
@@ -121,6 +136,30 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action icons & Cart */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Back to landing page button */}
+          {onReturnToLanding && (
+            <button
+              onClick={onReturnToLanding}
+              className="px-2.5 sm:px-3 py-1.5 text-stone-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
+              title="מי אנחנו ודף נחיתה"
+            >
+              <span>🏡</span>
+              <span className="hidden sm:inline">מי אנחנו</span>
+            </button>
+          )}
+
+          {/* Hotline / Phone order modal button */}
+          {onOpenPhoneOrder && (
+            <button
+              onClick={onOpenPhoneOrder}
+              className="px-2.5 sm:px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold border border-emerald-200 shadow-2xs"
+              title="מוקד הזמנות טלפוני"
+            >
+              <Phone className="w-3.5 h-3.5 text-emerald-700" />
+              <span className="hidden sm:inline">הזמנה טלפונית</span>
+            </button>
+          )}
+
           {/* Admin Dashboard shortcut button if admin */}
           {isAdmin && (
             <button

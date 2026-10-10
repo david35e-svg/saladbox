@@ -8,11 +8,13 @@ import { useAuth } from '../context/AuthContext';
 interface OrdersHistoryModalProps {
   onClose: () => void;
   onTrackOrder: (order: Order) => void;
+  onViewReceipt?: (order: Order) => void;
 }
 
 export const OrdersHistoryModal: React.FC<OrdersHistoryModalProps> = ({
   onClose,
   onTrackOrder,
+  onViewReceipt,
 }) => {
   const { orders } = useStore();
   const { reorderItems } = useCart();
@@ -127,14 +129,25 @@ export const OrdersHistoryModal: React.FC<OrdersHistoryModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <button
                         onClick={() => handleReorder(order)}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
                         <span>הזמן שוב</span>
                       </button>
+
+                      {onViewReceipt && (
+                        <button
+                          onClick={() => onViewReceipt(order)}
+                          className="px-3 py-2 bg-stone-100 hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 rounded-xl text-xs font-bold border border-stone-200 transition-colors flex items-center gap-1"
+                          title="הצג חשבונית מס קבלה"
+                        >
+                          <span>📄</span>
+                          <span>קבלה</span>
+                        </button>
+                      )}
 
                       <button
                         onClick={() => onTrackOrder(order)}

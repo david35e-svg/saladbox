@@ -23,8 +23,10 @@ export const CategoriesBar: React.FC<CategoriesBarProps> = ({
 }) => {
   const filterTags = [
     { id: 'all', label: 'הכל' },
-    { id: 'popular', label: '🔥 הכי פופולרי' },
-    { id: 'custom', label: '🥣 הרכבה אישית' },
+    { id: 'popular', label: '🔥 הנבחרים לשישי' },
+    { id: 'packages', label: '🧺 מארזים' },
+    { id: 'drinks', label: '🥤 שתייה' },
+    { id: 'spicy', label: '🌶️ פיקנטי וחריף' },
     { id: 'new', label: '✨ חדש' },
   ];
 
@@ -42,8 +44,8 @@ export const CategoriesBar: React.FC<CategoriesBarProps> = ({
                   : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
               }`}
             >
-              <span>🍽️</span>
-              <span>כל התפריט</span>
+              <span>🥗</span>
+              <span>כל הסלטים והמארזים</span>
             </button>
 
             {categories
@@ -72,7 +74,7 @@ export const CategoriesBar: React.FC<CategoriesBarProps> = ({
             <Search className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="חפש סלט, מרכיב, שתייה..."
+              placeholder="חפש מטבוחה, חציל, פלפלים, מארזי שישי..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full pr-9 pl-8 py-1.5 text-xs bg-white border border-stone-200 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-stone-900 placeholder:text-stone-400"
